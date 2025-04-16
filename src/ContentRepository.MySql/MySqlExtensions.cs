@@ -2,7 +2,12 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using SenseNet.Configuration;
 using SenseNet.ContentRepository.Components;
+using SenseNet.ContentRepository.Security.Clients;
+using SenseNet.ContentRepository.Storage;
+using SenseNet.ContentRepository.Storage.Data;
 using SenseNet.ContentRepository.Storage.Data.MySqlClient;
+using SenseNet.Storage.Data.MySqlClient;
+using SenseNet.Tools;
 
 namespace SenseNet.Extensions.DependencyInjection
 {
@@ -17,16 +22,21 @@ namespace SenseNet.Extensions.DependencyInjection
             Action<DataOptions> configureDataOptions = null)
         {
             return services.AddSenseNetMySqlDataProvider()
-                .AddSingleton<ISharedLockDataProvider, MySqlSharedLockDataProvider>()
-                .AddSingleton<IExclusiveLockDataProvider, MySqlExclusiveLockDataProvider>()
-                .AddSingleton<IAccessTokenDataProvider, MySqlAccessTokenDataProvider>()
-                .AddSingleton<IPackagingDataProvider, MySqlPackagingDataProvider>()
-                .AddSenseNetMySqlStatisticalDataProvider()
-                .AddDatabaseAuditEventWriter()
-                .AddSenseNetMySqlClientStoreDataProvider()
-                .Configure<ConnectionStringOptions>(options => configureConnectionStrings?.Invoke(options))
-                .Configure<MySqlDatabaseInstallationOptions>(options => configureInstallation?.Invoke(options))
-                .Configure<DataOptions>(options => configureDataOptions?.Invoke(options));
+                    .AddSingleton<ISharedLockDataProvider, MySqlSharedLockDataProvider>()
+                    .AddSingleton<IExclusiveLockDataProvider, MySqlExclusiveLockDataProvider>()
+                    .AddSingleton<IAccessTokenDataProvider, MySqlAccessTokenDataProvider>()
+                    .AddSingleton<IPackagingDataProvider, MySqlPackagingDataProvider>()
+                    .AddSenseNetMySqlStatisticalDataProvider()
+                    .AddDatabaseAuditEventWriter()
+                    .AddSenseNetMySqlClientStoreDataProvider()
+                    .AddComponent<MySqlExclusiveLockComponent>()
+                    .AddComponent<MySqlStatisticsComponent>()
+                    .AddComponent<MySqlClientStoreComponent>()
+
+                    .Configure<ConnectionStringOptions>(options => { configureConnectionStrings?.Invoke(options); })
+                    .Configure<MySqlDatabaseInstallationOptions>(options => { configureInstallation?.Invoke(options); })
+                    .Configure<DataOptions>(options => { configureDataOptions?.Invoke(options); })
+                ;
         }
 
         /// <summary>
@@ -37,7 +47,10 @@ namespace SenseNet.Extensions.DependencyInjection
             return services.AddSenseNetDataProvider<MySqlDataProvider>()
                 .AddSenseNetDataInstaller<MySqlDataInstaller>()
                 .AddSingleton<MySqlDatabaseInstaller>()
-                .Configure<MySqlDatabaseInstallationOptions>(_ => { });
+                .Configure<MySqlDatabaseInstallationOptions>(_ =>
+                {
+                    // This method ensures that the option object is registered
+                });
         }
 
         /// <summary>
